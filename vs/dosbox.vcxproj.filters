@@ -220,6 +220,9 @@
     <ClCompile Include="..\src\hardware\serialport\directserial.cpp">
       <Filter>src\hardware\serialport</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\hardware\serialport\fifo.cpp">
+      <Filter>src\hardware\serialport</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\hardware\serialport\libserial.cpp">
       <Filter>src\hardware\serialport</Filter>
     </ClCompile>
@@ -1003,6 +1006,9 @@
       <Filter>src\hardware\mame</Filter>
     </ClInclude>
     <ClInclude Include="..\src\hardware\serialport\directserial.h">
+      <Filter>src\hardware\serialport</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\hardware\serialport\fifo.h">
       <Filter>src\hardware\serialport</Filter>
     </ClInclude>
     <ClInclude Include="..\src\hardware\serialport\libserial.h">
