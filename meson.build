@@ -97,6 +97,7 @@ conf_data.set10('C_SLIRP', get_option('use_slirp'))
 conf_data.set10('C_NE2000', get_option('use_slirp'))
 conf_data.set10('C_OPENGL', get_option('use_opengl'))
 conf_data.set10('C_FLUIDSYNTH', get_option('use_fluidsynth'))
+conf_data.set10('C_FREETYPE', get_option('use_freetype'))
 conf_data.set10('C_MT32EMU', get_option('use_mt32emu'))
 conf_data.set10('C_SSHOT', get_option('use_png'))
 conf_data.set10('C_FPU', true)
@@ -245,6 +246,7 @@ speexdsp_dep       = dependency('speexdsp', version : '> 1.1.9',
 sdl2_net_dep       = optional_dep
 opengl_dep         = optional_dep
 fluid_dep          = optional_dep
+freetype_dep       = optional_dep
 libslirp_dep       = optional_dep
 mt32emu_dep        = optional_dep
 png_dep            = optional_dep
@@ -280,6 +282,13 @@ if get_option('use_fluidsynth')
                          static : is_glib_realm_static,
                          fallback : ['fluidsynth', 'fluidsynth_dep'],
                          not_found_message : msg.format('use_fluidsynth'))
+endif
+
+if get_option('use_freetype')
+  freetype_dep = dependency('freetype2', version : '>= 2',
+                             static : prefers_static_libs or ('freetype' in static_libs_list),
+                             fallback : ['freetype2', 'freetype_dep'],
+                             not_found_message : msg.format('use_freetype'))
 endif
 
 if get_option('use_slirp')

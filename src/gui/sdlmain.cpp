@@ -42,6 +42,11 @@
 #include <process.h>
 #endif
 
+#if C_FREETYPE
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
+
 #include <SDL.h>
 #if C_OPENGL
 #include <SDL_opengl.h>
@@ -4480,6 +4485,11 @@ int sdl_main(int argc, char *argv[])
 	LOG_MSG("SDL: version %d.%d.%d initialized (%s video and %s audio)",
 		SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL,
 		SDL_GetCurrentVideoDriver(), SDL_GetCurrentAudioDriver());
+
+#if C_FREETYPE
+	LOG_INFO("SYSTEM: FreeType version %d.%d.%d font rendering engine initialized",
+		 FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
+#endif
 
 	const auto config_path = CROSS_GetPlatformConfigDir();
 	SETUP_ParseConfigFiles(config_path);

@@ -10,7 +10,7 @@ env:
   CCACHE_DIR:      "/c/ccache"
   CCACHE_MAXSIZE:  "64M"
   CCACHE_COMPRESS: "true"
-  BUILD_FLAGS: "-Dbuildtype=release -Db_asneeded=true --force-fallback-for=fluidsynth,mt32emu -Dtry_static_libs=fluidsynth,mt32emu,opusfile,png,slirp,zlib,speexdsp -Dfluidsynth:try-static-deps=true"
+  BUILD_FLAGS: "-Dbuildtype=release -Db_asneeded=true --force-fallback-for=fluidsynth,mt32emu -Dtry_static_libs=fluidsynth,freetype,mt32emu,opusfile,png,slirp,zlib,speexdsp -Dfluidsynth:try-static-deps=true"
   BUILD_RELEASE_DIR: build/release
   BUILD_DEBUGGER_DIR: build/debugger
 
@@ -88,6 +88,7 @@ jobs:
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-pkgconf
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-ntldd
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-ncurses
+            mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-freetype
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-glib2
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-libpng
             mingw-w64-${{matrix.conf.toolchain}}${{matrix.conf.arch}}-opusfile
@@ -184,6 +185,7 @@ jobs:
             mingw-w64-clang-${{matrix.conf.arch}}-pkgconf
             mingw-w64-clang-${{matrix.conf.arch}}-ntldd
             mingw-w64-clang-${{matrix.conf.arch}}-ncurses
+            mingw-w64-clang-${{matrix.conf.arch}}-freetype
             mingw-w64-clang-${{matrix.conf.arch}}-glib2
             mingw-w64-clang-${{matrix.conf.arch}}-libpng
             mingw-w64-clang-${{matrix.conf.arch}}-opusfile

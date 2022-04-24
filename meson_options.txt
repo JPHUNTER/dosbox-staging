@@ -7,6 +7,9 @@ option('use_opengl', type : 'boolean', value : true,
 option('use_fluidsynth', type : 'boolean', value : true,
        description : 'Enable built-in MIDI support via FluidSynth')
 
+option('use_freetype', type : 'boolean', value : true,
+       description : 'Rasterize fonts using the FreeType font engine')
+
 option('use_mt32emu', type : 'boolean', value : true,
        description : 'Enable built-in MT-32 emulation support')
 
@@ -46,6 +49,7 @@ option('try_static_libs',
        type : 'array',
        choices : [
            'fluidsynth',
+           freetype',
            'mt32emu',
            'opusfile',
            'png',

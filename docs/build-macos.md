@@ -28,7 +28,7 @@ to be installed and the license agreed to:
 2. Install dependencies and related tools:
 
     ``` shell
-    brew install ccache cmake libpng meson libslirp \
+    brew install ccache cmake freetype libpng meson libslirp \
                  opusfile pkg-config python3 sdl2 sdl2_net speexdsp
     ```
 
@@ -47,7 +47,7 @@ to be installed and the license agreed to:
     ``` shell
     sudo port -q install ccache cmake fluidsynth libpng libsdl2 \
               libsdl2_net meson opusfile pkgconfig python310 \
-              libslirp speexdsp
+              libslirp speexdsp freetype
     ```
 
 ## Build

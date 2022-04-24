@@ -22,6 +22,7 @@ Provides: bundled(mt32emu) = 2.5.3
 BuildRequires: alsa-lib-devel
 BuildRequires: desktop-file-utils
 BuildRequires: fluidsynth-devel >= 2.2.3
+BuildRequires: freetype-devel >= 2
 BuildRequires: gcc
 BuildRequires: gcc-c++
 BuildRequires: git

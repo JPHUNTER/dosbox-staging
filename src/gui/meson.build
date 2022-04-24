@@ -9,6 +9,7 @@ libgui_sources = files([
 libgui = static_library('gui', libgui_sources,
                         include_directories : incdir,
                         dependencies : [
+                          freetype_dep,
                           sdl2_dep,
                           opengl_dep,
                           libghc_dep,
