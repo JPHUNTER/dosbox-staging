@@ -1,0 +1,13 @@
+[wrap-file]
+directory = iir1-1.9.2
+source_url = https://github.com/berndporr/iir1/archive/refs/tags/1.9.2.tar.gz
+source_filename = 1.9.2.tar.gz
+source_hash = b53581a71b0e116c74429ffd936b8a94cd1c3e626b8074f948024d2e23bff161
+patch_filename = iir_1.9.2-2_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/iir_1.9.2-2/get_patch
+patch_hash = 600f996e8bc4cb1327386a3e9d3795f511b11a336eeca4c0ccaa4fad93e8d90f
+wrapdb_version = 1.9.2-2
+
+[provide]
+iir = libiir_dep
+

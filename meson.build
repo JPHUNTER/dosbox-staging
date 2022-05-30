@@ -12,6 +12,7 @@ project('dosbox-staging', 'c', 'cpp',
     'fluidsynth:enable-threads=false',
     'fluidsynth:try-static-deps=false',
     'fluidsynth:warning_level=0',
+    'iir:exceptions=false',
     'glib:glib_assert=false',
     'glib:glib_checks=false',
     'glib:glib_debug=disabled',
@@ -240,6 +241,8 @@ sdl2_dep           = dependency('sdl2', version : '>= 2.0.5',
                                 static : ('sdl2' in static_libs_list))
 zlib_dep           = dependency('zlib', version : '>= 1.2.11',
                                 static : ('zlib' in static_libs_list))
+libiir_dep         = dependency('iir', version : '>= 1.9.2',
+                                static : ('iir' in static_libs_list))
 speexdsp_dep       = dependency('speexdsp', version : '> 1.1.9',
                                 static : ('speexdsp' in static_libs_list))
 sdl2_net_dep       = optional_dep
@@ -413,7 +416,6 @@ subdir('src/libs/residfp')
 subdir('src/libs/sdlcd')
 subdir('src/libs/whereami')
 subdir('src/libs/PDCurses')
-subdir('src/libs/iir1')
 
 # internal libs
 #
@@ -453,7 +455,7 @@ executable('dosbox', dosbox_sources,
                            stdcppfs_dep,
                            sdl2_dep,
                            threads_dep,
-                           libiir1_dep,
+                           libiir_dep,
                            libghc_dep,
                            libloguru_dep,
                            libpdcurses_dep,
@@ -468,7 +470,7 @@ libdosbox = static_library('dosbox', ['src/dosbox.cpp', version_file],
                         dependencies : [atomic_dep,
                                         threads_dep,
                                         sdl2_dep,
-                                        libiir1_dep,
+                                        libiir_dep,
                                         libghc_dep,
                                         libloguru_dep,
                                         libsdlcd_dep]

@@ -27,7 +27,7 @@ check_package() {
 	echo "  1. cd $(git rev-parse --show-toplevel)"
 	echo ""
 	echo "  2. meson setup --wrap-mode=forcefallback -Db_asneeded=true \\"
-	echo "                 -Ddefault_library=static -Dtry_static_libs=fluidsynth,mt32emu,png \\"
+	echo "                 -Ddefault_library=static -Dtry_static_libs=fluidsynth,iir,mt32emu,png \\"
 	echo "                 -Dfluidsynth:enable-floats=true -Dfluidsynth:try-static-deps=true \\"
 	echo "                 -Db_asneeded=true -Dunit_tests=disabled -Dstrip=true \\"
 	echo "                 -Dwarning_level=0 -Dc_args=-w -Dcpp_args=-w build/full-static"

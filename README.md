@@ -238,7 +238,7 @@ is bootstrapped, open PowerShell and run:
 
 ``` powershell
 PS:\> .\vcpkg integrate install
-PS:\> .\vcpkg install --triplet x64-windows libpng sdl2 sdl2-net libmt32emu opusfile fluidsynth gtest speexdsp
+PS:\> .\vcpkg install --triplet x64-windows libpng sdl2 sdl2-net iir1 libmt32emu opusfile fluidsynth gtest speexdsp
 ```
 
 These two steps will ensure that MSVC finds and links all dependencies.

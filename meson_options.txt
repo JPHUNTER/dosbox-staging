@@ -46,6 +46,7 @@ option('try_static_libs',
        type : 'array',
        choices : [
            'fluidsynth',
+           'iir',
            'mt32emu',
            'opusfile',
            'png',

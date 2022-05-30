@@ -74,8 +74,8 @@ you build a binary optimized for gaming.
 
    ``` shell
    meson setup build/release-gcc -Dbuildtype=release -Db_asneeded=true \
-     --force-fallback-for=fluidsynth,mt32emu,slirp \
-     -Dtry_static_libs=fluidsynth,mt32emu,opusfile,png,slirp,speexdsp \
+     --force-fallback-for=fluidsynth,iir,mt32emu,slirp \
+     -Dtry_static_libs=fluidsynth,iir,mt32emu,opusfile,png,slirp,speexdsp \
      -Dfluidsynth:try-static-deps=true
    ```
 
@@ -84,8 +84,8 @@ you build a binary optimized for gaming.
    ``` shell
    meson setup build/release-clang --native-file=.github/meson/native-clang.ini \
      -Dbuildtype=release -Db_asneeded=true \
-     --force-fallback-for=fluidsynth,mt32emu,slirp \
-     -Dtry_static_libs=fluidsynth,mt32emu,opusfile,png,slirp,speexdsp \
+     --force-fallback-for=fluidsynth,iir,mt32emu,slirp \
+     -Dtry_static_libs=fluidsynth,iir,mt32emu,opusfile,png,slirp,speexdsp \
      -Dfluidsynth:try-static-deps=true
    ```
 
