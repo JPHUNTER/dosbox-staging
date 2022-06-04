@@ -42,7 +42,7 @@
 #include <process.h>
 #endif
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #if C_OPENGL
 #include <SDL_opengl.h>
 #endif

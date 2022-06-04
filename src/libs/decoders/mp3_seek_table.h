@@ -36,7 +36,7 @@
 #include "config.h"
 
 #include <vector>    // provides: vector
-#include <SDL.h>     // provides: SDL_RWops
+#include <SDL2/SDL.h>     // provides: SDL_RWops
 #include "archive.h" // provides: archive
 
 // Ensure we only get the API

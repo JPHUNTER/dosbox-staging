@@ -43,7 +43,7 @@
 #include <mmsystem.h>
 #endif
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <speex/speex_resampler.h>
 
 #include "ansi_code_markup.h"

@@ -25,8 +25,8 @@
 #include "dosbox.h"
 
 #include <cmath>
-#if defined(_MSC_VER) && (_MSC_VER  <= 1500) 
-#include <SDL.h>
+#if defined(_MSC_VER) && (_MSC_VER  <= 1500)
+#include <SDL2/SDL.h>
 #else
 #include <stdint.h>
 #endif

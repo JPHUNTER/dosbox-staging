@@ -24,7 +24,7 @@
 #include <string>
 #include <string_view>
 #include <string.h>
-#include "SDL.h"
+#include <SDL2/SDL.h>
 #if C_OPENGL
 #include <SDL_opengl.h>
 #endif

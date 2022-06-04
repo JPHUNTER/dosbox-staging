@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 constexpr uint32_t MMOD1 = 0x1;
 #define MMOD1_NAME "Ctrl"

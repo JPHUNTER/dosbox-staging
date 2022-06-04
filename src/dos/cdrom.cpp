@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #include "dosbox.h"
-#include "SDL.h"
+#include <SDL2/SDL.h>
 #include "support.h"
 #include "cdrom.h"
 

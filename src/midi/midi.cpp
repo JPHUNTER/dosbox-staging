@@ -27,7 +27,7 @@
 #include <string>
 #include <algorithm>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "ansi_code_markup.h"
 #include "cross.h"

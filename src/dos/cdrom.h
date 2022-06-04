@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <SDL_thread.h>
 
 #include "support.h"

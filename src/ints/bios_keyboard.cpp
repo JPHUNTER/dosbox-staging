@@ -18,7 +18,7 @@
 
 #include "bios.h"
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #include "callback.h"
 #include "mem.h"
