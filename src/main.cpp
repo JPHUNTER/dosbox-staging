@@ -23,6 +23,7 @@
 // When compiling for Windows, SDL converts function 'main' to 'WinMain' and
 // performs some additional initialization.
 //
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
 int main(int argc, char *argv[])
