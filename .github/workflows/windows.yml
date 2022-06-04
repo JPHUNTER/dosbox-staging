@@ -64,6 +64,7 @@ jobs:
       - name:  Integrate packages
         shell: pwsh
         run: |
+          vcpkg owns manual-link
           vcpkg integrate install
           if (-not $?) { throw "vcpkg failed to integrate packages" }
 
@@ -137,6 +138,7 @@ jobs:
       - name:  Integrate packages
         shell: pwsh
         run: |
+          vcpkg owns manual-link
           vcpkg integrate install
           if (-not $?) { throw "vcpkg failed to integrate packages" }
 
