@@ -173,6 +173,7 @@ class Module: public Module_base {
 	void CacheWrite( uint32_t reg, uint8_t val );
 	void DualWrite( uint8_t index, uint8_t reg, uint8_t val );
 	void CtrlWrite( uint8_t val );
+	void SurroundCtrlWrite(uint8_t val);
 	uint8_t CtrlRead(void);
 
 public:

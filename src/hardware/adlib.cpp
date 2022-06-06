@@ -30,11 +30,16 @@
 #include "mem.h"
 #include "dbopl.h"
 #include "../libs/nuked/opl3.h"
+#include "../libs/YM7128B_emu/YM7128B_emu.h"
+#include "../libs/TDA8425_emu/TDA8425_emu.h"
 
 #include "mame/emu.h"
 #include "mame/fmopl.h"
 #include "mame/ymf262.h"
 
+
+YM7128B_ChipIdeal* surround_module;
+TDA8425_Chip* stereo_processor;
 
 #define OPL2_INTERNAL_FREQ    3600000   // The OPL2 operates at 3.6MHz
 #define OPL3_INTERNAL_FREQ    14400000  // The OPL3 operates at 14.4MHz
@@ -192,9 +197,27 @@ struct Handler : public Adlib::Handler {
 	void Generate(mixer_channel_t &chan, uint16_t samples) override
 	{
 		int16_t buf[1024 * 2];
+		YM7128B_ChipIdeal_Process_Data surround_data;
+		TDA8425_Chip_Process_Data stereo_data;
+
 		while (samples > 0) {
 			uint32_t todo = samples > 1024 ? 1024 : samples;
 			OPL3_GenerateStream(&chip, buf, todo);
+
+			for (uint32_t i = 0; i < todo; ++i) {
+				surround_data.inputs[0] = (buf[i * 2] + buf[i * 2 + 1]);
+				YM7128B_ChipIdeal_Process(surround_module, &surround_data);
+
+				stereo_data.inputs[0][0] = buf[i * 2] + surround_data.outputs[0];
+				stereo_data.inputs[1][0] = buf[i * 2] + surround_data.outputs[0];
+				stereo_data.inputs[0][1] = buf[i * 2 + 1] + surround_data.outputs[1];
+				stereo_data.inputs[1][1] = buf[i * 2 + 1] + surround_data.outputs[1];
+				TDA8425_Chip_Process(stereo_processor, &stereo_data);
+
+				buf[i * 2] = stereo_data.outputs[0] * 2;
+				buf[i * 2 + 1] = stereo_data.outputs[1] * 2;
+			}
+
 			chan->AddSamples_s16(todo, buf);
 			samples -= todo;
 		}
@@ -569,8 +592,69 @@ void Module::DualWrite(uint8_t index, uint8_t port, uint8_t val)
 	CacheWrite(full_port, val);
 }
 
+void Module::SurroundCtrlWrite(uint8_t val)
+{
+	static uint8_t prev_sci = 0;
+	static uint8_t prev_a0 = 0;
+	static uint8_t addr = 0;
+	static uint8_t data = 0;
+
+	// Serial data
+	const uint8_t din = val & 1;
+	// Bit clock
+	const uint8_t sci = val & 2;
+	// Word clock
+	const uint8_t a0 = val & 4;
+
+	// Change register data at the falling edge of 'a0' word clock
+	if (prev_a0 && !a0) {
+		LOG_MSG("OPL3GOLD: Change register %d, data: %d", addr, data);
+		YM7128B_ChipIdeal_Write(surround_module, addr, data);
+	} else {
+		// Data is sent in serially through 'din' in MSB->LSB order,
+		// synchronised by the 'sci' bit clock. Data should be read on the
+		// rising edge of 'sci'.
+		if (!prev_sci && sci) {
+			// The 'a0' word clock determines the type of the data.
+			if (a0)
+				// Data cycle
+				data = (data << 1) | din;
+			else
+				// Address cycle
+				addr = (addr << 1) | din;
+		}
+	}
+
+	prev_sci = sci;
+	prev_a0 = a0;
+}
+
+
 void Module::CtrlWrite( uint8_t val ) {
 	switch ( ctrl.index ) {
+	case 0x00:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Control/ID, data: %x", val);
+		break;
+	case 0x04:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Final output volume left, data: %x", val);
+		TDA8425_Chip_Write(stereo_processor, (TDA8425_Address)TDA8425_Reg_VL, val);
+		break;
+	case 0x05:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Final output volume right, data: %x", val);
+		TDA8425_Chip_Write(stereo_processor, (TDA8425_Address)TDA8425_Reg_VR, val);
+		break;
+	case 0x06:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Bass, data: %x", val);
+		TDA8425_Chip_Write(stereo_processor, (TDA8425_Address)TDA8425_Reg_BA, val);
+		break;
+	case 0x07:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Treble, data: %x", val);
+		TDA8425_Chip_Write(stereo_processor, (TDA8425_Address)TDA8425_Reg_TR, val);
+		break;
+	case 0x08:
+		LOG_MSG("OPL3GOLD: CtrlWrite: Stereo mode, data: %x, chan: %x, mode: %x", val, val & 6, val & 18);
+		TDA8425_Chip_Write(stereo_processor, (TDA8425_Address)TDA8425_Reg_SF, val);
+		break;
 	case 0x09: /* Left FM Volume */
 		ctrl.lvol = val;
 		goto setvol;
@@ -582,13 +666,17 @@ setvol:
 			mixerChan->SetVolume( (float)(ctrl.lvol&0x1f)/31.0f, (float)(ctrl.rvol&0x1f)/31.0f );
 		}
 		break;
+	case 0x18: /* Surround */
+		SurroundCtrlWrite(val);
 	}
 }
 
 uint8_t Module::CtrlRead(void)
 {
 	switch (ctrl.index) {
-	case 0x00: /* Board Options */ return 0x70; // No options installed
+//	case 0x00: /* Board Options */ return 0x70; // 16-bit ISA, no telephone/surround/CD-ROM
+	case 0x00: /* Board Options */ return 0x50; // 16-bit ISA, surround module, no telephone/CDROM
+												//
 	case 0x09: /* Left FM Volume */ return ctrl.lvol;
 	case 0x0a: /* Right FM Volume */
 		return ctrl.rvol;
@@ -726,6 +814,23 @@ void Module::Init( Mode m ) {
 	switch ( mode ) {
 	case MODE_OPL3:
 	case MODE_OPL3GOLD:
+		surround_module = (YM7128B_ChipIdeal*)malloc(sizeof(YM7128B_ChipIdeal));
+		YM7128B_ChipIdeal_Ctor(surround_module);
+		YM7128B_ChipIdeal_Setup(surround_module, mixerChan->GetSampleRate());
+		YM7128B_ChipIdeal_Reset(surround_module);
+		YM7128B_ChipIdeal_Start(surround_module);
+
+		stereo_processor = (TDA8425_Chip*)malloc(sizeof(TDA8425_Chip));
+		TDA8425_Chip_Ctor(stereo_processor);
+		TDA8425_Chip_Setup(
+				stereo_processor,
+				mixerChan->GetSampleRate(),
+				TDA8425_Pseudo_C1_Table[TDA8425_Pseudo_Preset_1],
+				TDA8425_Pseudo_C2_Table[TDA8425_Pseudo_Preset_1],
+				TDA8425_Tfilter_Mode_Disabled
+		);
+		TDA8425_Chip_Reset(stereo_processor);
+		break;
 	case MODE_OPL2:
 		break;
 	case MODE_DUALOPL2:
@@ -911,6 +1016,19 @@ Module::~Module() {
 	capture = nullptr;
 	delete handler;
 	handler = nullptr;
+
+	if (surround_module) {
+		YM7128B_ChipIdeal_Stop(surround_module);
+		YM7128B_ChipIdeal_Dtor(surround_module);
+		free(surround_module);
+		surround_module = nullptr;
+	}
+	if (stereo_processor) {
+		TDA8425_Chip_Stop(stereo_processor);
+    	TDA8425_Chip_Dtor(stereo_processor);
+    	free(stereo_processor);
+		stereo_processor = nullptr;
+	}
 }
 
 //Initialize static members
