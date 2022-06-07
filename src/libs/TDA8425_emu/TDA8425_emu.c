@@ -718,6 +718,8 @@ static void TDA8425_Chip_ProcessSelector(
         break;
 
     default:
+        stereo[L] = data->inputs[S1][L];
+        stereo[R] = data->inputs[S1][R];
         break;
     }
 }
