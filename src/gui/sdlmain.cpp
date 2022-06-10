@@ -2086,11 +2086,12 @@ void GFX_UpdateMouseState()
 
 		/*
 		 * If we've switched-back from fullscreen, then release the
-		 * mouse if it's auto-captured (but not manually requested) and
+		 * mouse if it is controlled by a VMware compatible driver or
+		 * it's auto-captured (but not manually requested) and
 		 * in seamless-mode.
 		 */
 	} else if (!sdl.desktop.fullscreen && mouse_is_captured &&
-	           !mouse_capture_requested && sdl.mouse.control_choice == Seamless) {
+	           (mouse_vmware || (!mouse_capture_requested && sdl.mouse.control_choice == Seamless))) {
 		GFX_ToggleMouseCapture();
 		SDL_ShowCursor(SDL_DISABLE);
 
@@ -2099,12 +2100,13 @@ void GFX_UpdateMouseState()
 		 *  up the first time, then:
 		 *  - Capture the mouse if configured onstart is set.
 		 *  - Hide the mouse if seamless or nomouse are set.
+		 *  - Also hide if it is handled by a VMware compatible driver.
 		 */
 	} else if (!has_run_once) {
 		if (sdl.mouse.control_choice == CaptureOnStart) {
 			SDL_RaiseWindow(sdl.window);
 			toggle_mouse_capture_from_user(true);
-		} else if (sdl.mouse.control_choice & (Seamless | NoMouse)) {
+		} else if (mouse_vmware || (sdl.mouse.control_choice & (Seamless | NoMouse))) {
 			SDL_ShowCursor(SDL_DISABLE);
 		}
 	}
@@ -3477,7 +3479,7 @@ static void GUI_StartUp(Section *sec)
 inline void HandleMouseMotion(SDL_MouseMotionEvent *motion)
 {
 	if (motion->xrel != 0 || motion->yrel != 0) {
-		if (mouse_is_captured || sdl.mouse.control_choice == Seamless)
+		if (mouse_vmware || mouse_is_captured || sdl.mouse.control_choice == Seamless)
 			Mouse_EventMoved(motion->xrel,
 			                 motion->yrel,
 			                 motion->x,
@@ -3495,7 +3497,7 @@ inline void HandleMouseWheel(SDL_MouseWheelEvent *wheel)
 static void HandleMouseButton(SDL_MouseButtonEvent * button) {
 	switch (button->state) {
 	case SDL_PRESSED:
-		if (!sdl.desktop.fullscreen &&
+		if (!sdl.desktop.fullscreen && !mouse_vmware &&
 		    ((sdl.mouse.control_choice & (CaptureOnStart | CaptureOnClick) &&
 		      !mouse_is_captured) ||
 		     (sdl.mouse.control_choice != NoMouse && sdl.mouse.middle_will_release &&
