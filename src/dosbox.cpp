@@ -812,10 +812,13 @@ void DOSBOX_Init() {
 	                  "           Use the filter of this Sound Blaster model.\n"
 	                  "  none:    Don't filter the output.");
 
-	Pstring = secprop->Add_string("cms_filter", when_idle, "on");
-	Pstring->Set_help("Filter for the Sound Blaster CMS output:\n"
+	const char *filter_on_or_none[] = {"on", "none", 0};
+
+	pstring = secprop->Add_string("cms_filter", when_idle, "on");
+	pstring->Set_help("Filter for the Sound Blaster CMS output:\n"
 	                  "  on:    Filter the output (default).\n"
 	                  "  none:  Don't filter the output.");
+	pstring->Set_values(filter_on_or_none);
 
 	// Configure Gravis UltraSound emulation
 	GUS_AddConfigSection(control);
@@ -827,20 +830,11 @@ void DOSBOX_Init() {
 	Pbool = secprop->Add_bool("pcspeaker", when_idle, true);
 	Pbool->Set_help("Enable PC-Speaker emulation.");
 
-	// Basis for the default PC-Speaker sample generation rate:
-	//   "With the PC speaker, typically a 6-bit DAC with a maximum value of
-	//   63
-	//    is used at a sample rate of 18,939.4 Hz."
-	// PC Speaker. (2020, June 8). In Wikipedia. Retrieved from
-	// https://en.wikipedia.org/w/index.php?title=PC_speaker&oldid=961464485
-	//
-	// As this is the frequency range that game authors in the 1980s would
-	// have worked with when tuning their game audio, we therefore use this
-	// same value given it's the most likely to produce audio as intended by
-	// the authors.
-	pint = secprop->Add_int("pcrate", when_idle, 12000);
-	pint->SetMinMax(8000, 48000);
-	pint->Set_help("Sample rate of the PC-Speaker sound generation.");
+	pstring = secprop->Add_string("pcspeaker_filter", when_idle, "on");
+	pstring->Set_help("Filter for the PC Speaker output:\n"
+	                  "  on:    Filter the output (default).\n"
+	                  "  none:  Don't filter the output.");
+	pstring->Set_values(filter_on_or_none);
 
 	const char *zero_offset_opts[] = {"auto", "true", "false", 0};
 	pstring = secprop->Add_string("zero_offset", when_idle, zero_offset_opts[0]);
