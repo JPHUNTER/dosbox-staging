@@ -194,7 +194,17 @@ mixer_channel_t MIXER_AddChannel(MIXER_Handler handler, const int freq,
 mixer_channel_t MIXER_FindChannel(const char *name)
 {
 	std::lock_guard lock(mixer.channel_mutex);
+
 	auto it = mixer.channels.find(name);
+
+	// Deprecated alias SPKR to PCSPEAKER
+	if (it == mixer.channels.end() && std::string_view(name) == "SPKR") {
+		LOG_WARNING("MIXER: '%s' is deprecated due to inconsistent "
+		            "naming, please use 'PCSPEAKER' instead",
+		            name);
+		it = mixer.channels.find("PCSPEAKER");
+	}
+
 	return (it != mixer.channels.end()) ? it->second : nullptr;
 }
 
