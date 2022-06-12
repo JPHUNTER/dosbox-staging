@@ -52,6 +52,16 @@ enum MixerModes {
 	M_16M,M_16S
 };
 
+enum class MixerState : uint8_t {
+	Uninitialized, // Mixer is not initialized (start-up default)
+	NoSound, // Initialized, but the audio subsystem is disabled either
+	         // via the "nosound" conf or an error state from SDL.
+	Off, // A system-controlled off-state, might be via pause or loss of focus.
+	Mute, // A user-controlled off-state via the hotkey action.
+	On, // A system-controlled on-state, might be via unpause or gain of focus.
+	FocusResume, // A request that, if not muted, will lead to the on-state.
+};
+
 // A simple stereo audio frame
 struct AudioFrame {
 	float left = 0;
@@ -268,5 +278,6 @@ void PCSPEAKER_SetType(int mode);
 
 // Mixer configuration and initialization
 void MIXER_AddConfigSection(const config_ptr_t &conf);
+void MIXER_SetState(const MixerState requested);
 
 #endif
