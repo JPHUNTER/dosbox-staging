@@ -28,6 +28,7 @@
 #include "hardware.h"
 
 #include <cmath>
+#include <functional>
 
 namespace Adlib {
 
@@ -144,10 +145,24 @@ public:
 	// Generate a certain amount of frames
 	virtual void Generate(mixer_channel_t &chan, uint16_t frames) = 0;
 
-	// Initialize at a specific sample rate and mode
-	virtual void Init(uint32_t rate) = 0;
+	// Initialize a specific sample rate
+	virtual void SetSampleRate(const uint32_t rate) = 0;
+
+	// Initialize the frame write function
+	void SetFrameWriter(const OPL_Mode &mode);
+
+	Handler(const OPL_Mode &mode, [[maybe_unused]] const uint32_t rate);
+
+	Handler() = delete;
 
 	virtual ~Handler() = default;
+
+protected:
+	// no-op function
+	static void writeFramesNoOp(mixer_channel_t &, int16_t[], const uint16_t)
+	{}
+	std::function<void(mixer_channel_t &, int16_t[], const uint16_t)> writeFrames =
+	        writeFramesNoOp;
 };
 
 //The cache for 2 chips or an opl3

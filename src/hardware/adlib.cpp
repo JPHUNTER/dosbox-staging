@@ -45,8 +45,52 @@ static AdlibGold *adlib_gold = nullptr;
 
 constexpr auto render_frames = 1024;
 
+static void WriteOpl2Frames(mixer_channel_t &channel, int16_t buf[],
+                            const uint16_t mono_frames)
+{
+	assert(channel);
+	channel->AddSamples_m16(mono_frames, buf);
+}
+
+static void WriteOpl3Frames(mixer_channel_t &channel, int16_t buf[],
+                            const uint16_t frames)
+{
+	assert(channel);
+	channel->AddSamples_s16(frames, buf);
+}
+
+static void WriteGoldFrames(mixer_channel_t &channel, int16_t buf[],
+                            const uint16_t frames)
+{
+	static float float_buf[render_frames * 2] = {};
+
+	assert(adlib_gold);
+	adlib_gold->Process(buf, frames, float_buf);
+
+	assert(channel);
+	channel->AddSamples_sfloat(frames, float_buf);
+}
+
+void Adlib::Handler::SetFrameWriter(const OPL_Mode &mode)
+{
+	switch (mode) {
+	case OPL_Mode::OPL_opl2:
+	case OPL_Mode::OPL_dualopl2: writeFrames = WriteOpl2Frames; break;
+	case OPL_Mode::OPL_opl3: writeFrames = WriteOpl3Frames; break;
+	case OPL_Mode::OPL_opl3gold: writeFrames = WriteGoldFrames; break;
+	default:
+		LOG_ERR("Adlib: Unknown OPL mode %d", static_cast<int>(mode));
+		break;
+	};
+}
+
+Adlib::Handler::Handler(const OPL_Mode &mode, [[maybe_unused]] const uint32_t rate)
+{
+	SetFrameWriter(mode);
+}
+
 namespace OPL2 {
-	#include "opl.cpp"
+#include "opl.cpp"
 
 struct Handler : public Adlib::Handler {
 	virtual void WriteReg(uint32_t reg, uint8_t val) { adlib_write(reg, val); }
@@ -59,11 +103,19 @@ struct Handler : public Adlib::Handler {
 		while (remaining > 0) {
 			const auto todo = std::min(remaining, render_frames);
 			adlib_getsample(buf, todo);
-			chan->AddSamples_m16(todo, buf);
+			writeFrames(chan, buf, todo);
 			remaining -= todo;
 		}
 	}
-	virtual void Init(uint32_t rate) { adlib_init(rate); }
+	void SetSampleRate(const uint32_t rate) override
+	{
+		adlib_init(rate);
+	}
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate)
+	{
+		SetSampleRate(rate);
+	}
 	~Handler() {}
 };
 
@@ -83,23 +135,24 @@ struct Handler : public Adlib::Handler {
 	virtual void Generate(mixer_channel_t &chan, const uint16_t frames)
 	{
 		int16_t buf[render_frames * 2];
-		float float_buf[render_frames * 2];
 		int remaining = frames;
 
 		while (remaining > 0) {
 			const auto todo = std::min(remaining, render_frames);
 			adlib_getsample(buf, todo);
-
-			if (adlib_gold) {
-				adlib_gold->Process(buf, todo, float_buf);
-				chan->AddSamples_sfloat(todo, float_buf);
-			} else {
-				chan->AddSamples_s16(todo, buf);
-			}
+			writeFrames(chan, buf, todo);
 			remaining -= todo;
 		}
 	}
-	virtual void Init(uint32_t rate) { adlib_init(rate); }
+	void SetSampleRate(const uint32_t rate) override
+	{
+		adlib_init(rate);
+	}
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate)
+	{
+		SetSampleRate(rate);
+	}
 	~Handler() {}
 };
 
@@ -122,15 +175,21 @@ struct Handler : public Adlib::Handler {
 		while (remaining > 0) {
 			const auto todo = std::min(remaining, render_frames);
 			ym3812_update_one(chip, buf, todo);
-			chan->AddSamples_m16(todo, buf);
+			writeFrames(chan, buf, todo);
 			remaining -= todo;
 		}
 	}
-	virtual void Init(uint32_t rate)
+	void SetSampleRate(const uint32_t rate) override
 	{
 		chip = ym3812_init(0, OPL2_INTERNAL_FREQ, rate);
 	}
-	~Handler() {
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate)
+	{
+		SetSampleRate(rate);
+	}
+	~Handler()
+	{
 		ym3812_shutdown(chip);
 	}
 };
@@ -153,7 +212,6 @@ struct Handler : public Adlib::Handler {
 		// We generate data for 4 channels, but only the first 2 are
 		// connected on a pc
 		int16_t buf[4][render_frames];
-		float float_buf[render_frames * 2];
 		int16_t result[render_frames][2];
 		int16_t* buffers[4] = { buf[0], buf[1], buf[2], buf[3] };
 
@@ -166,20 +224,21 @@ struct Handler : public Adlib::Handler {
 				result[i][0] = buf[0][i];
 				result[i][1] = buf[1][i];
 			}
-			if (adlib_gold) {
-				adlib_gold->Process(result[0], todo, float_buf);
-				chan->AddSamples_sfloat(todo, float_buf);
-			} else {
-				chan->AddSamples_s16(todo, result[0]);
-			}
+			writeFrames(chan, result[0], todo);
 			remaining -= todo;
 		}
 	}
-	virtual void Init(uint32_t rate)
+	void SetSampleRate(const uint32_t rate) override
 	{
 		chip = ymf262_init(0, OPL3_INTERNAL_FREQ, rate);
 	}
-	~Handler() {
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate)
+	{
+		SetSampleRate(rate);
+	}
+	~Handler()
+	{
 		ymf262_shutdown(chip);
 	}
 };
@@ -212,28 +271,27 @@ struct Handler : public Adlib::Handler {
 	void Generate(mixer_channel_t &chan, uint16_t frames) override
 	{
 		int16_t buf[render_frames * 2];
-		float float_buf[render_frames * 2];
 
 		int remaining = frames;
 		while (remaining > 0) {
 			const auto todo = std::min(remaining, render_frames);
 			OPL3_GenerateStream(&chip, buf, todo);
-
-			if (adlib_gold) {
-				adlib_gold->Process(buf, todo, float_buf);
-				chan->AddSamples_sfloat(todo, float_buf);
-			} else {
-				chan->AddSamples_s16(todo, buf);
-			}
+			writeFrames(chan, buf, todo);
 			remaining -= todo;
 		}
 	}
 
-	void Init(uint32_t rate) override
+	void SetSampleRate(const uint32_t rate) override
 	{
 		newm = 0;
 		OPL3_Reset(&chip, rate);
 	}
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate)
+	{
+		SetSampleRate(rate);
+	}
+	~Handler() {}
 };
 
 } // namespace NukedOPL
@@ -897,28 +955,28 @@ static void OPL_SaveRawEvent(bool pressed) {
 
 namespace Adlib {
 
-static Handler * make_opl_handler(const std::string &oplemu, OPL_Mode mode)
+static Handler *make_opl_handler(const std::string &oplemu, const OPL_Mode mode,
+                                 const uint32_t sample_rate)
 {
 	if (oplemu == "fast") {
-		const bool is_opl3 = (mode >= OPL_opl3);
-		return new DBOPL::Handler(is_opl3);
+		return new DBOPL::Handler(mode, sample_rate);
 	}
 	if (oplemu == "compat") {
 		if (mode == OPL_opl2)
-			return new OPL2::Handler();
+			return new OPL2::Handler(mode, sample_rate);
 		else
-			return new OPL3::Handler();
+			return new OPL3::Handler(mode, sample_rate);
 	}
 	if (oplemu == "mame") {
 		if (mode == OPL_opl2)
-			return new MAMEOPL2::Handler();
+			return new MAMEOPL2::Handler(mode, sample_rate);
 		else
-			return new MAMEOPL3::Handler();
+			return new MAMEOPL3::Handler(mode, sample_rate);
 	}
 	if (oplemu == "nuked") {
-		return new NukedOPL::Handler();
+		return new NukedOPL::Handler(mode, sample_rate);
 	}
-	return new NukedOPL::Handler();
+	return new NukedOPL::Handler(mode, sample_rate);
 }
 
 Module::Module(Section *configuration)
@@ -943,10 +1001,11 @@ Module::Module(Section *configuration)
 	mixerChan = MIXER_AddChannel(OPL_CallBack, 0, "FM", channel_features);
 
 	//Used to be 2.0, which was measured to be too high. Exact value depends on card/clone.
-	mixerChan->SetScale( 1.5f );  
+	mixerChan->SetScale( 1.5f );
 
-	handler = make_opl_handler(section->Get_string("oplemu"), oplmode);
-	handler->Init(mixerChan->GetSampleRate());
+	const auto sample_rate = mixerChan->GetSampleRate();
+
+	handler = make_opl_handler(section->Get_string("oplemu"), oplmode, sample_rate);
 
 	bool single = false;
 	switch ( oplmode ) {

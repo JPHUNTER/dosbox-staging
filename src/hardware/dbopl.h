@@ -254,9 +254,13 @@ struct Handler : public Adlib::Handler {
 	virtual uint32_t WriteAddr(io_port_t port, uint8_t val);
 	virtual void WriteReg( uint32_t addr, uint8_t val );
 	virtual void Generate(mixer_channel_t &chan, uint16_t samples);
-	virtual void Init(uint32_t rate);
+	void SetSampleRate(const uint32_t rate) override;
 
-	Handler(bool opl3Mode) : chip(opl3Mode) {
+	Handler(const OPL_Mode &mode, const uint32_t rate)
+	        : Adlib::Handler(mode, rate),
+	          chip(mode >= OPL_opl3)
+	{
+		SetSampleRate(rate);
 	}
 };
 

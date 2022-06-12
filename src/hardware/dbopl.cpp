@@ -1555,7 +1555,7 @@ void Handler::Generate(mixer_channel_t &chan, uint16_t samples)
 	}
 }
 
-void Handler::Init(uint32_t rate)
+void Handler::SetSampleRate(const uint32_t rate)
 {
 	InitTables();
 	chip.Setup( rate );
