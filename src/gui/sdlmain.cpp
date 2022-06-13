@@ -57,6 +57,7 @@
 #include "joystick.h"
 #include "keyboard.h"
 #include "mapper.h"
+#include "mixer.h"
 #include "mouse.h"
 #include "pacer.h"
 #include "pic.h"
@@ -2459,8 +2460,8 @@ static void SetPriority(PRIORITY_LEVELS level)
 	// since priority can always be lowered but requires elevated rights
 	// to increase
 
-	if((sdl.priority.focus != sdl.priority.nofocus ) &&
-		(getuid()!=0) ) return;
+	if ((sdl.fg_priority.level != sdl.bg_priority.level) && (getuid() != 0))
+		return;
 
 #endif
 	switch (level) {
@@ -3244,6 +3245,48 @@ static void set_output(Section *sec, bool should_stretch_pixels)
 //extern void UI_Run(bool);
 void Restart(bool pressed);
 
+static void SetPriorities(const std::string_view foreground_pref,
+                          const std::string_view background_pref)
+{
+	auto to_level = [](const std::string_view pref) {
+		if (pref == "auto")
+			return PRIORITY_LEVEL_AUTO;
+		if (pref == "pause")
+			return PRIORITY_LEVEL_PAUSE;
+		if (pref == "mute")
+			return PRIORITY_LEVEL_MUTE;
+		if (pref == "lowest")
+			return PRIORITY_LEVEL_LOWEST;
+		if (pref == "lower")
+			return PRIORITY_LEVEL_LOWER;
+		if (pref == "normal")
+			return PRIORITY_LEVEL_NORMAL;
+		if (pref == "higher")
+			return PRIORITY_LEVEL_HIGHER;
+		if (pref == "highest")
+			return PRIORITY_LEVEL_HIGHEST;
+
+		LOG_WARNING("Invalid priority level: %s, using 'auto'", pref.data());
+		return PRIORITY_LEVEL_AUTO;
+	};
+
+	sdl.fg_priority.level = to_level(foreground_pref);
+	sdl.bg_priority.level = to_level(background_pref);
+
+	// aliases
+	auto &fg_callback = sdl.fg_priority.callback;
+	auto &bg_callback = sdl.bg_priority.callback;
+
+	if (sdl.bg_priority.level == PRIORITY_LEVEL_MUTE) {
+		bg_callback = []() { MIXER_SetState(MixerState::Off); };
+		fg_callback = []() { SetPriority(sdl.fg_priority.level);
+		                     MIXER_SetState(MixerState::FocusResume); };
+	} else {
+		bg_callback = []() { SetPriority(sdl.bg_priority.level); };
+		fg_callback = []() { SetPriority(sdl.fg_priority.level); };
+	}
+}
+
 static void GUI_StartUp(Section *sec)
 {
 	sec->AddDestroyFunction(&GUI_ShutDown);
@@ -3257,50 +3300,16 @@ static void GUI_StartUp(Section *sec)
 
 	sdl.desktop.fullscreen=section->Get_bool("fullscreen");
 
-	Prop_multival* p=section->Get_multival("priority");
-	std::string focus = p->GetSection()->Get_string("active");
-	std::string notfocus = p->GetSection()->Get_string("inactive");
-
-	if (focus == "auto" || notfocus == "auto") {
-		sdl.priority.focus = PRIORITY_LEVEL_AUTO;
-		sdl.priority.nofocus = PRIORITY_LEVEL_AUTO;
-		if (focus != "auto" || notfocus != "auto")
-			LOG_WARNING("MAIN: \"priority\" can't be \"auto\" for just one value, overriding");
-	} else {
-		if (focus == "lowest")
-			sdl.priority.focus = PRIORITY_LEVEL_LOWEST;
-		else if (focus == "lower")
-			sdl.priority.focus = PRIORITY_LEVEL_LOWER;
-		else if (focus == "normal")
-			sdl.priority.focus = PRIORITY_LEVEL_NORMAL;
-		else if (focus == "higher")
-			sdl.priority.focus = PRIORITY_LEVEL_HIGHER;
-		else if (focus == "highest")
-			sdl.priority.focus = PRIORITY_LEVEL_HIGHEST;
-
-		if (notfocus == "lowest")
-			sdl.priority.nofocus = PRIORITY_LEVEL_LOWEST;
-		else if (notfocus == "lower")
-			sdl.priority.nofocus = PRIORITY_LEVEL_LOWER;
-		else if (notfocus == "normal")
-			sdl.priority.nofocus = PRIORITY_LEVEL_NORMAL;
-		else if (notfocus == "higher")
-			sdl.priority.nofocus = PRIORITY_LEVEL_HIGHER;
-		else if (notfocus == "highest")
-			sdl.priority.nofocus = PRIORITY_LEVEL_HIGHEST;
-		else if (notfocus == "pause")
-			/* we only check for pause here, because it makes no
-			 * sense for DOSBox to be paused while it has focus
-			 */
-			sdl.priority.nofocus = PRIORITY_LEVEL_PAUSE;
-	}
+	auto priority_conf = section->Get_multival("priority")->GetSection();
+	SetPriorities(priority_conf->Get_string("foreground"),
+	              priority_conf->Get_string("background"));
 
 	// Adjust the fallback resolution based on the user's aspect-correction
 	const auto should_stretch_pixels = wants_stretched_pixels();
 	FALLBACK_WINDOW_DIMENSIONS = should_stretch_pixels ? SDL_Point{640, 480}
 	                                                   : SDL_Point{640, 400};
 
-	SetPriority(sdl.priority.focus); // Assume focus on startup
+	sdl.fg_priority.callback(); // Assume focus on startup
 	sdl.desktop.full.fixed=false;
 	const char* fullresolution=section->Get_string("fullresolution");
 	sdl.desktop.full.width  = 0;
@@ -3701,11 +3710,11 @@ bool GFX_Events()
 				 * and size toggles.
 				 */
 				// DEBUG_LOG_MSG("SDL: Window has gained keyboard focus");
-				SetPriority(sdl.priority.focus);
 				if (sdl.draw.callback)
 					sdl.draw.callback(GFX_CallBackRedraw);
 				GFX_UpdateMouseState();
 
+				sdl.fg_priority.callback();
 				FocusInput();
 				continue;
 
@@ -3717,7 +3726,7 @@ bool GFX_Events()
 					GFX_ForceFullscreenExit();
 				}
 #endif
-				SetPriority(sdl.priority.nofocus);
+				sdl.bg_priority.callback();
 				GFX_LosingFocus();
 				CPU_Enable_SkipAutoAdjust();
 				sdl.mouse.has_focus = false;
@@ -3761,6 +3770,7 @@ bool GFX_Events()
 
 			case SDL_WINDOWEVENT_MINIMIZED:
 				DEBUG_LOG_MSG("SDL: Window has been minimized");
+				sdl.bg_priority.callback();
 				break;
 
 			case SDL_WINDOWEVENT_MAXIMIZED:
@@ -3776,6 +3786,7 @@ bool GFX_Events()
 
 			case SDL_WINDOWEVENT_TAKE_FOCUS:
 				FocusInput();
+				sdl.fg_priority.callback();
 				continue;
 
 			case SDL_WINDOWEVENT_HIT_TEST:
@@ -3789,7 +3800,7 @@ bool GFX_Events()
 			/* Non-focus priority is set to pause; check to see if we've lost window or input focus
 			 * i.e. has the window been minimised or made inactive?
 			 */
-			if (sdl.priority.nofocus == PRIORITY_LEVEL_PAUSE) {
+			if (sdl.bg_priority.level == PRIORITY_LEVEL_PAUSE) {
 				if ((event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) || (event.window.event == SDL_WINDOWEVENT_MINIMIZED)) {
 					/* Window has lost focus, pause the emulator.
 					 * This is similar to what PauseDOSBox() does, but the exit criteria is different.
@@ -3820,7 +3831,7 @@ bool GFX_Events()
 								if ((ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) || (ev.window.event == SDL_WINDOWEVENT_RESTORED) || (ev.window.event == SDL_WINDOWEVENT_EXPOSED)) {
 									paused = false;
 									GFX_SetTitle(-1,-1,false);
-									SetPriority(sdl.priority.focus);
+									sdl.fg_priority.callback();
 									CPU_Disable_SkipAutoAdjust();
 								}
 
@@ -4107,21 +4118,25 @@ void Config_Add_SDL() {
 	Pbool = sdl_sec->Add_bool("waitonerror", always, true);
 	Pbool->Set_help("Wait before closing the console if dosbox has an error.");
 
-	Pmulti = sdl_sec->Add_multi("priority", always, ",");
-	Pmulti->SetValue("auto,auto");
+	Pmulti = sdl_sec->Add_multi("priority", always, " ");
+	Pmulti->SetValue("auto auto");
 	Pmulti->Set_help(
-	        "Priority levels for dosbox. Second entry behind the comma is for when dosbox is not focused/minimized.\n"
-	        "pause is only valid for the second entry. auto disables priority levels and uses OS defaults");
+	        "Priority when in the foreground (first parameter) and background (second parameter).\n"
+	        "   auto:  Let the host operating system manage the priority (valid for both).\n"
+	        "   mute:  Mute the sound when in the background (valid for background setting).\n"
+	        "   pause: Pause operation when in the background (valid for background setting).\n"
+	        "Default setting is: 'auto auto'");
 
-	const char *actt[] = {"auto",   "lowest",  "lower", "normal",
-	                      "higher", "highest", "pause", 0};
-	Pstring = Pmulti->GetSection()->Add_string("active", always, "higher");
-	Pstring->Set_values(actt);
+	const char *foreground_choices[] = {
+	        "auto", "lowest", "lower", "normal", "higher", "highest", 0};
+	psection = Pmulti->GetSection();
+	psection->Add_string("foreground", always, foreground_choices[0])
+	        ->Set_values(foreground_choices);
 
-	const char *inactt[] = {"auto",   "lowest",  "lower", "normal",
-	                        "higher", "highest", "pause", 0};
-	Pstring = Pmulti->GetSection()->Add_string("inactive", always, "normal");
-	Pstring->Set_values(inactt);
+	const char *background_choices[] = {
+	        "auto", "lowest", "lower", "normal", "higher", "highest", "mute", "pause", 0};
+	psection->Add_string("background", always, background_choices[0])
+	        ->Set_values(background_choices);
 
 	pstring = sdl_sec->Add_path("mapperfile", always, MAPPERFILE);
 	pstring->Set_help("File used to load/save the key/event mappings from.\n"
