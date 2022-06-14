@@ -24,6 +24,7 @@
 #include "render.h"
 #include "vga.h"
 #include "mem.h"
+#include "vga_reelmagic_override.h"
 
 /*
 3C6h (R/W):  PEL Mask

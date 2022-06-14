@@ -54,6 +54,9 @@ libhardware_sources = files([
   'vga_seq.cpp',
   'vga_tseng.cpp',
   'vga_xga.cpp',
+  'reelmagic_driver.cpp',
+  'reelmagic_player.cpp',
+  'reelmagic_videomixer.cpp'
 ])
 
 libhardware = static_library('hardware', libhardware_sources,

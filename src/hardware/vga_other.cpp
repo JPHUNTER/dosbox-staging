@@ -32,6 +32,8 @@
 #include "support.h"
 #include "vga.h"
 
+#include "vga_reelmagic_override.h"
+
 static void write_crtc_index_other(io_port_t, io_val_t value, io_width_t)
 {
 	const auto val = check_cast<uint8_t>(value);
